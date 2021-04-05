@@ -8,8 +8,10 @@ from torch.utils.data import TensorDataset
 from transformers import BertPreTrainedModel
 from transformers import BertModel, RobertaModel, ElectraModel
 from transformers import BertTokenizer, RobertaTokenizer, ElectraTokenizer
-from transformers import RobertaConfig, ROBERTA_PRETRAINED_MODEL_ARCHIVE_MAP
-from transformers import ElectraConfig, ELECTRA_PRETRAINED_MODEL_ARCHIVE_MAP, load_tf_weights_in_electra
+from transformers import RobertaConfig
+# from transformers.modeling_roberta import ROBERTA_PRETRAINED_MODEL_ARCHIVE_MAP
+from transformers import ElectraConfig
+# , ELECTRA_PRETRAINED_MODEL_ARCHIVE_MAP, load_tf_weights_in_electra
 
 class BertForTRC(BertPreTrainedModel):
     
@@ -71,8 +73,8 @@ class BertForMatres(BertForTRC):
 
 class ElectraForMatres(BertPreTrainedModel):
     config_class = ElectraConfig
-    retrained_model_archive_map = ELECTRA_PRETRAINED_MODEL_ARCHIVE_MAP
-    load_tf_weights = load_tf_weights_in_electra
+    # retrained_model_archive_map = ELECTRA_PRETRAINED_MODEL_ARCHIVE_MAP
+    # load_tf_weights = load_tf_weights_in_electra
     base_model_prefix = "electra"
 
     def __init__(self, config):
@@ -107,7 +109,7 @@ class ElectraForMatres(BertPreTrainedModel):
 
 class RobertaForMatres(BertPreTrainedModel):
     config_class=RobertaConfig
-    pretrained_model_archive_map = ROBERTA_PRETRAINED_MODEL_ARCHIVE_MAP
+    # pretrained_model_archive_map = ROBERTA_PRETRAINED_MODEL_ARCHIVE_MAP
     base_model_prefix = "roberta"
 
     def __init__(self, config):
