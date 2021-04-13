@@ -5,6 +5,8 @@ import pickle
 import random
 import sys
 
+import pandas as pd
+
 from constants import *
 from modeling import make_tensor_dataset
 from utils import IndexedExamplePartial
@@ -16,7 +18,7 @@ from udst import parse_udst
 from timebank.examples import MatresLoader
 
 
-def get_train_data(data, tokenizer, lm, num_examples=None, mask=True, distant_source=None):
+def get_train_data(data, tokenizer, lm, num_examples=None, mask=True, distant_source=None, precondition_sentence=False):
     if data == "beforeafter":
         print("Using BeforeAfter train examples from Gigaword.")
         exs, data = beforeafter_examples(tokenizer, lm=lm, num_examples=num_examples, mask=mask, during=False)
@@ -26,6 +28,14 @@ def get_train_data(data, tokenizer, lm, num_examples=None, mask=True, distant_so
     elif data == "matres":
         print("Using MATRES train examples.")
         exs, data, feats = matres_train_examples(tokenizer, lm=lm)
+        if num_examples:
+            idxs = random.sample(list(range(len(exs))), num_examples)
+            exs = [exs[i] for i in idxs]
+            feats = [feats[i] for i in idxs]
+            data = make_tensor_dataset(feats, model=lm)
+    elif data == "matres_preconditions":
+        print("Using MATRES train examples w/ precondition labels.")
+        exs, data, feats = matres_train_examples_preconditions(tokenizer, lm=lm, precondition_sentence=precondition_sentence)
         if num_examples:
             idxs = random.sample(list(range(len(exs))), num_examples)
             exs = [exs[i] for i in idxs]
@@ -141,6 +151,29 @@ def matres_train_examples(tokenizer, lm='roberta', mask_events=False, mask_conte
     return train_examples, train_data, train_features
 
 
+def matres_train_examples_preconditions(tokenizer, lm='roberta', mask_events=False, mask_context=False, precondition_sentence=False):
+    train_examples, _ = matres_examples()
+    # Add precondition data
+    train_precondition_file = "precondition_data/matres_train_preconditions.csv"
+    train_precondition_data = pd.read_csv(train_precondition_file)
+    for i in range(len(train_examples)):
+        ex = train_examples[i]
+        precondition_label = train_precondition_data.iloc[i]['0']
+        ex.precondition_label = precondition_label
+
+    train_examples, train_features = convert_examples_to_features(
+        examples=train_examples,
+        tokenizer=tokenizer,
+        max_seq_length=MAX_SEQ_LENGTH,
+        doc_stride=DOC_STRIDE,
+        mask_events=mask_events,
+        mask_context=mask_context,
+        use_preconditions=True,
+        precondition_sentence=precondition_sentence)
+    train_data = make_tensor_dataset(train_features, model=lm)
+    return train_examples, train_data, train_features
+
+
 def matres_dev_examples(tokenizer, lm='roberta', mask_events=False, mask_context=False):
     _, dev_examples = matres_examples()
 
@@ -167,6 +200,30 @@ def matres_test_examples(tokenizer, lm='roberta', mask_events=False, mask_contex
         mask_events=mask_events,
         mask_context=mask_context,
         id_prefix="mt")
+    data = make_tensor_dataset(features, model=lm)
+    return examples, data
+
+def matres_test_examples_preconditions(tokenizer, lm='roberta', mask_events=False, mask_context=False, precondition_sentence=False):
+    loader = MatresLoader()
+    examples = loader.read_test_examples(doc_dir="timebank/te3-platinum/", rel_dir="timebank/MATRES/")
+    # Add precondition data
+    test_precondition_file = "precondition_data/matres_test_preconditions.csv"
+    test_precondition_data = pd.read_csv(test_precondition_file)
+    for i in range(len(examples)):
+        ex = examples[i]
+        precondition_label = test_precondition_data.iloc[i]['0']
+        ex.precondition_label = precondition_label
+
+    examples, features = convert_examples_to_features(
+        examples=examples,
+        tokenizer=tokenizer,
+        max_seq_length=MAX_SEQ_LENGTH,
+        doc_stride=DOC_STRIDE,
+        mask_events=mask_events,
+        mask_context=mask_context,
+        id_prefix="mt",
+        use_preconditions=True,
+        precondition_sentence=precondition_sentence)
     data = make_tensor_dataset(features, model=lm)
     return examples, data
 

@@ -33,9 +33,9 @@ def train(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     n_gpu = torch.cuda.device_count()
     print(device, n_gpu)
-
     model, tokenizer = load_model_and_tokenizer(lm=args.lm,
-                                                model_dir=args.model_dir)
+                                                model_dir=args.model_dir,
+                                                add_precondition_token=args.add_precondition_token)
 
     all_exs = []
     all_data = []
@@ -48,7 +48,7 @@ def train(args):
 
     for data_source, num_exs in zip(args.data, args.num_examples):
         exs, data = get_train_data(data_source, tokenizer, lm=args.lm,
-                       num_examples=num_exs, mask=args.mask, distant_source=args.distant_source)
+                       num_examples=num_exs, mask=args.mask, distant_source=args.distant_source, precondition_sentence=args.precondition_sentence)
         all_exs.append(exs)
         all_data.append(data)
 
@@ -213,6 +213,8 @@ if __name__ == "__main__":
     #parser.add_argument('--uda_method', help='prune,ne')
     #parser.add_argument('--uda_weight', type=float)
     parser.add_argument('--disable_tqdm', action='store_true')
+    parser.add_argument('--precondition_sentence', action='store_true')
+    parser.add_argument('--add_precondition_token', action='store_true')
     args = parser.parse_args()
     print(args)
 

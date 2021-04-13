@@ -62,15 +62,17 @@ class InputFeatures(object):
 def convert_examples_to_features(examples, tokenizer, max_seq_length,   
                                  doc_stride, mask=False,                
                                  mask_events=False, mask_context=False,
-                                 id_prefix=None):
+                                 id_prefix=None, use_preconditions=False,
+                                 precondition_sentence=False):
     """Loads a data file into a list of InputFeatures."""                       
 
     unique_id = 1
-
     features = []
     processed_examples = []
     # Generates features from examples.
-    for (example_index, example) in enumerate(examples):                        
+    for (example_index, example) in enumerate(examples):
+        # if example_index == 0:
+        #     continue             
         is_same_sentence = example.sent1 == example.sent2                       
         sent1 = example.sent1.copy()
         sent2 = example.sent2.copy()
@@ -97,6 +99,7 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length,
                     sent1[example.e2_idx] = example.sent2[example.e2_idx]
                 sent2 = [tokenizer.mask_token] * len(example.sent2)
                 sent2[example.e2_idx] = example.sent2[example.e2_idx]
+        
         sent1_tokens = list(itertools.chain.from_iterable(
             [tokenizer.tokenize(w) for w in sent1]))
         sent2_tokens = list(itertools.chain.from_iterable(
@@ -115,6 +118,38 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length,
             assert len(token_type_ids) == max_seq_length
         else:
             token_type_ids = None
+
+        if use_preconditions:
+            i = 0
+            for t in attention_mask:
+                if t == 1:
+                    i += 1
+                else:
+                    break
+            if precondition_sentence:
+                if example.precondition_label == 1:
+                    e1 = sent1[example.e1_idx]
+                    e2 = sent2[example.e2_idx]
+                    p_sent = [e1, "is", "necessary", "for", e2, "to", "happen"]
+                    precondition_tokens = list(itertools.chain.from_iterable(
+                        [tokenizer.tokenize(w) for w in p_sent]))
+                    precondition_inputs = tokenizer.encode_plus(
+                        precondition_tokens, add_special_tokens=False)
+                    precondition_input_ids = precondition_inputs["input_ids"]
+                    if i + len(precondition_input_ids) < max_seq_length:
+                        for j in range(i, i + len(precondition_input_ids)):
+                            input_ids[j] = precondition_input_ids[j-i]
+                            attention_mask[j] = 1
+            else:    
+                if i < max_seq_length and example.precondition_label == 1:
+                    # precondition_token = 134 if example.precondition_label == 1 else 288
+                    precondition_inputs = tokenizer.encode_plus(["<pre>"], add_special_tokens=False)
+                    # input_ids[i] = precondition_inputs["input_ids"][0]
+                    input_ids.insert(1, precondition_inputs["input_ids"][0])
+                    input_ids.pop()
+                    attention_mask.insert(1, 1)
+                    attention_mask.pop()
+                    # attention_mask[i] = 1
 
         example.tokens = tokenizer.convert_ids_to_tokens(input_ids)
         max_seq_length = len(input_ids)
@@ -176,6 +211,9 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length,
                 e2_position=example.tok_e2_idx
             )
         )
+        # print(features[0])
+        # i = 3/0
+
         if id_prefix:
             example.id = id_prefix + str(unique_id)
         unique_id += 1

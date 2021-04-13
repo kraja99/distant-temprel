@@ -45,6 +45,16 @@ def get_data(tokenizer, data_source):
                                               lm=args.lm)#,
                                               #mask_events=args.mask_events,
                                               #mask_context=args.mask_context)
+    elif data_source == 'matres_test_preconditions' or data_source == 'matres_test_preconditions_sent':
+        print("using matres test examples with precondition labels")
+        precondition_sentence = False
+        if data_source == 'matres_test_preconditions_sent':
+            precondition_sentence = True
+        examples, data = matres_test_examples_preconditions(tokenizer,
+                                              lm=args.lm,
+                                              precondition_sentence=precondition_sentence)#,
+                                              #mask_events=args.mask_events,
+                                              #mask_context=args.mask_context)
     elif data_source == 'distant_dev' or data_source == "distant_test":
         print("using distant test examples")
         examples, data = distant_test_examples(tokenizer,
@@ -235,7 +245,9 @@ if __name__ == "__main__":
                                  'udst_train', 'udst_dev', 'udst_test',
                                  'udst_dev_maj', 'udst_test_maj',
                                  'udst_dev_maj_conf_nt',
-                                 'udst_test_maj_conf_nt'],
+                                 'udst_test_maj_conf_nt',
+                                 'matres_test_preconditions',
+                                 'matres_test_preconditions_sent'],
                         help='data sources to evaluate on')
     parser.add_argument('--mask', action='store_true')
     parser.add_argument('--model_dir', nargs='+',

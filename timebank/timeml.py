@@ -36,9 +36,10 @@ class TimeMLExample(object):
         self.e1_sentence_pos= None
         self.e2_sentence_num = None
         self.e2_sentence_pos = None
+        self.precondition_label = None
 
     def __str__(self):
-        return " ".join(self.text) + "\n" + str(self.e1_pos) + " " + str(self.e2_pos) + " " + self.str_label
+        return "".join(self.text) + "\n" + str(self.e1_idx) + " " + str(self.e2_idx) + " " + self.str_label
 
 class Event(object):
     def __init__(self, eid, cls, sentence, pos_in_sentence):
